@@ -11,3 +11,6 @@ __pycache__/
 # Editor/OS
 .vscode/
 .DS_Store
+
+# Temporary worktree snapshots
+*.worktrees/
