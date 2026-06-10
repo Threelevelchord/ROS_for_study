@@ -8,10 +8,15 @@ project(nav_pkg)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  geometry_msgs
+  nav_msgs
   move_base_msgs
   actionlib 
+  actionlib_msgs
   roscpp
   rospy
+  tf
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -160,10 +165,12 @@ include_directories(
 
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
-# catkin_install_python(PROGRAMS
-#   scripts/my_python_script
-#   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
+catkin_install_python(PROGRAMS
+  scripts/nav_client2.py
+  scripts/dwa_virtual_reverse_adapter.py
+  scripts/teb_virtual_reverse_adapter.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 
 ## Mark executables for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html

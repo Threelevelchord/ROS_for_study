@@ -1,0 +1,67 @@
+<launch>
+    <!--
+      Virtual reverse navigation test.
+
+      Start this instead of nav.launch:
+        roslaunch wpr_simulation wpb_stage_robocup.launch
+        roslaunch nav_pkg nav_virtual_reverse.launch
+
+      Do not run nav.launch at the same time.
+    -->
+
+    <arg name="map_file" default="$(find wpr_simulation)/maps/map.yaml"/>
+    <arg name="rviz_config" default="$(find nav_pkg)/rviz/nav.rviz"/>
+
+    <node pkg="map_server" type="map_server" name="map_server" args="$(arg map_file)"/>
+    <node pkg="amcl" type="amcl" name="amcl"/>
+
+    <!-- Start this before the internal move_base so dwa_base_footprint exists
+         when costmaps initialize. -->
+    <node pkg="nav_pkg"
+          type="dwa_virtual_reverse_adapter.py"
+          name="dwa_virtual_reverse_adapter"
+          output="screen"
+          required="true"
+          launch-prefix="python3">
+        <param name="external_action_name" value="move_base"/>
+        <param name="internal_action_name" value="/dwa_internal/move_base"/>
+        <param name="map_frame" value="map"/>
+        <param name="real_base_frame" value="base_footprint"/>
+        <param name="virtual_base_frame" value="dwa_base_footprint"/>
+        <param name="cmd_vel_raw_topic" value="/cmd_vel_dwa_raw"/>
+        <param name="cmd_vel_topic" value="/cmd_vel"/>
+        <param name="odom_topic" value="/odom"/>
+        <param name="virtual_odom_topic" value="/odom_dwa_virtual"/>
+        <param name="reverse_min_distance" value="0.25"/>
+        <param name="reverse_angle_tolerance" value="0.60"/>
+        <param name="reverse_lateral_tolerance" value="0.35"/>
+        <param name="reverse_yaw_tolerance" value="0.35"/>
+        <param name="tf_publish_rate" value="30.0"/>
+    </node>
+
+    <group ns="dwa_internal">
+        <node pkg="move_base" type="move_base" name="move_base" output="screen">
+            <rosparam file="$(find wpb_home_tutorials)/nav_lidar/costmap_common_params.yaml" command="load" ns="global_costmap"/>
+            <rosparam file="$(find wpb_home_tutorials)/nav_lidar/costmap_common_params.yaml" command="load" ns="local_costmap"/>
+            <rosparam file="$(find wpb_home_tutorials)/nav_lidar/global_costmap_params.yaml" command="load"/>
+            <rosparam file="$(find wpb_home_tutorials)/nav_lidar/local_costmap_params.yaml" command="load"/>
+            <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+            <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
+            <rosparam file="$(find nav_pkg)/config/dwa_local_planner_params.yaml" command="load"/>
+
+            <!-- Only the internal DWA move_base uses the virtual base frame. -->
+            <param name="global_costmap/robot_base_frame" value="dwa_base_footprint"/>
+            <param name="local_costmap/robot_base_frame" value="dwa_base_footprint"/>
+            <param name="DWAPlannerROS/min_vel_x" value="0.0"/>
+            <param name="DWAPlannerROS/odom_topic" value="/odom_dwa_virtual"/>
+
+            <!-- Keep raw DWA velocity separate; the adapter translates it to /cmd_vel. -->
+            <remap from="cmd_vel" to="/cmd_vel_dwa_raw"/>
+            <remap from="map" to="/map"/>
+            <remap from="odom" to="/odom_dwa_virtual"/>
+            <remap from="scan" to="/scan"/>
+        </node>
+    </group>
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(arg rviz_config)"/>
+</launch>
